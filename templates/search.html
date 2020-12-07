@@ -1,57 +1,171 @@
 {% extends "template.html" %}
+<html>
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+	<script src="https://use.fontawesome.com/releases/v5.0.8/js/all.js"></script>
+	<link href="style.css" rel="stylesheet">
 
-{% block content %}
-    {% if message %}
-        {{ message }}
-    {% endif %}
-
-    {% if articles%}
-        <table class="table table-hover table-striped">
-    <thead>
-      <tr>
-          <th>subject</th>
-        <th>title</th>
-        <th>author</th>
-        <th>time</th>
-          <th>population</th>
-      </tr>
-    </thead>
-    <tbody>
-        {% for article in articles %}
-            <td><a href="/subject/{{ article.subject_id }}">{{ article.subject.name }}</a></td>
-            <td><a href="/article/{{ article.id }}">{{ article.title }}</a></td>
-            <td>{{ Tool.email_display_filter(article.author.mail) }}</td>
-            <td>{{ article.time.strftime("%Y-%m-%d %H:%M") }}</td>
-            <td>{{ article.metric }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-  </table>
-
-    {% endif %}
+</head>
+<body>
 
 
-    {% if comments%}
-        <table class="table table-hover table-striped">
-    <thead>
-      <tr>
-          <th>article_title</th>
-        <th>comment</th>
-        <th>time</th>
-        <th>author</th>
-      </tr>
-    </thead>
-    <tbody>
-        {% for comment in comments %}
-        <tr>
-            <td><a href="/article/{{ comment.article_id }}">{{ comment.article.title }}</a></td>
-            <td>{{ Tool.sensitive_words_filter(comment.body) }}</td>
-            <td>{{ comment.time.strftime("%Y-%m-%d %H:%M") }}</td>
-            <td><a href="/author/{{ comment.author_id }}">{{ Tool.email_display_filter(comment.author.mail) }}</a></td>
-        </tr>
-        {% endfor %}
-    </tbody>
-  </table>
-    {% endif %}
+{% block head %}
+
+    <script>
+        function postArticle() {
+            document.myform.action="/edit"
+        }
+
+        function createSubject() {
+            document.myform.action="/edit_subcategory"
+        }
+
+        function verify() {
+            htmlobj=$.ajax({url:"/check/" + document.getElementById('email').value ,async:false});
+            //alert(JSON.stringify(htmlobj.responseText))
+            let flag = String(htmlobj.responseText)
+            if(flag==='true\n') {
+                alert('Your email has been banned!')
+                return false
+            }else {
+                return true
+            }
+
+        }
+    </script>
 
 {% endblock %}
+
+{% block content %}
+
+    <table class="table table-hover table-striped" id="myTable">
+    <thead>
+      <tr>
+          <!-- Click "Title" to sort by names, and "population" to sort by country.
+The first time you click, the sorting direction is ascending (A to Z).
+Click again, and the sorting direction will be descending (Z to A):-->
+        <th style=" cursor: pointer;" onclick="sortTable(0) "><button class="btn btn-primary">Title</button></th>
+        <th>author</th>
+        <th>time</th>
+          <th style=" cursor: pointer;" onclick="sortTable(3) "><button class="btn btn-primary">population</button></th>
+
+      </tr>
+    </thead>
+    <tbody>
+        <!--Edit-->
+        <br><div class="card">
+    <div class="card-body">
+      <p class="card-text">You are in {{ url }}</p>
+        <form name="myform" method="get" onsubmit="return verify();">
+            <input type="text" name="subject_id" style="display: none" value={{ subject_id }}>
+            <input type="email" name="email" id="email" placeholder="Enter Email to post or create" required="required"/><br><br>
+        <button type="submit" class="btn btn-primary" onclick="postArticle()">post article</button>
+        <button type="submit" class="btn btn-primary" onclick="createSubject()">add subcategory</button>
+        <input type="checkbox" name="add_father" value="father" /> add main subject
+        </form>
+    </div>
+  </div><br>
+        <!--Edit end-->
+    {% if hot_article %}
+            {% for hot_article in hot_article %}
+
+           <!--hot article-->
+        <tr>
+        <td><a href="/article/{{ hot_article.id }}">{{ hot_article.title }}</a></td>
+        <td>{{ Tool.email_display_filter(hot_article.author.mail) }}</td>
+        <td>{{ hot_article.time.strftime("%Y-%m-%d %H:%M") }}</td>
+        <td>{{ hot_article.metric }}&emsp;<span class="badge badge-danger">Hot</span></td>
+        </tr>
+            {% endfor %}
+
+    {% endif %}
+
+        <!--./hot article end-->
+    {% for article in articles.items %}
+        <tr>
+            <td><a href="/article/{{ article.id }}">{{ article.title }}</a></td>
+        <td>{{ Tool.email_display_filter(article.author.mail) }}</td>
+        <td>{{ article.time.strftime("%Y-%m-%d %H:%M") }}</td>
+        <td>{{ article.metric }}</td>
+      </tr>
+    {% endfor %}
+
+
+    </tbody>
+  </table>
+
+  {% for page_num in articles.iter_pages() %}
+    {% if page_num %}
+      {% if articles.page == page_num%}
+        <a class="btn btn-info mb-4" href="{{ url_for('get_subject', subjectID=subject_id, page=page_num)}}">{{ page_num }}</a>
+      {% else %}
+        <a class="btn btn-outline-info mb-4" href="{{ url_for('get_subject', subjectID=subject_id, page=page_num)}}">{{ page_num }}</a>
+      {% endif %}
+    {% endif %}
+{% endfor %}
+
+<script>
+function sortTable(n) {
+  var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+  table = document.getElementById("myTable");
+  switching = true;
+  //Set the sorting direction to ascending:
+  dir = "asc";
+  /*Make a loop that will continue until
+  no switching has been done:*/
+  while (switching) {
+    //start by saying: no switching is done:
+    switching = false;
+    rows = table.rows;
+    /*Loop through all table rows (except the
+    first, which contains table headers):*/
+    for (i = 1; i < (rows.length - 1); i++) {
+      //start by saying there should be no switching:
+      shouldSwitch = false;
+      /*Get the two elements you want to compare,
+      one from current row and one from the next:*/
+      x = rows[i].getElementsByTagName("TD")[n];
+      y = rows[i + 1].getElementsByTagName("TD")[n];
+      /*check if the two rows should switch place,
+      based on the direction, asc or desc:*/
+      if (dir == "asc") {
+        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+          //if so, mark as a switch and break the loop:
+          shouldSwitch= true;
+          break;
+        }
+      } else if (dir == "desc") {
+        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+          //if so, mark as a switch and break the loop:
+          shouldSwitch = true;
+          break;
+        }
+      }
+    }
+    if (shouldSwitch) {
+      /*If a switch has been marked, make the switch
+      and mark that a switch has been done:*/
+      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+      switching = true;
+      //Each time a switch is done, increase this count by 1:
+      switchcount ++;
+    } else {
+      /*If no switching has been done AND the direction is "asc",
+      set the direction to "desc" and run the while loop again.*/
+      if (switchcount == 0 && dir == "asc") {
+        dir = "desc";
+        switching = true;
+      }
+    }
+  }
+}
+
+
+</script>
+
+
+
+</body>
+</html>
+{%  endblock %}

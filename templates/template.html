@@ -39,6 +39,20 @@ hr.light{
     {% block head %}
 
     {% endblock %}
+
+    <script type="text/javascript">
+
+            function pp(){
+                if(document.getElementById('inputContent').value == ""){
+                    alert('You are not input anything!')
+                }else{
+                    document.getElementById('ff').submit()
+                }
+
+            }
+
+    </script>
+
 </head>
 <body>
     <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
@@ -54,10 +68,10 @@ hr.light{
         </li>
           <!-- search -->&emsp;
           <li class="nav-item" style="float:right">
-              <form method="get" action="/search">
-              <input type="text" name="content" style="border-radius:2px;" placeholder="input keyword to search"/>&nbsp;
-              <button class="btn btn-secondary" type="submit">search</button>
+              <form method="get" action="/search" id="ff" style="float: left">
+              <input type="text" name="content" id = "inputContent" style="border-radius:2px;" placeholder="input keyword to search"/>&nbsp;
               </form>
+              <button class="btn btn-secondary" id="Judge" type="submit" onclick="pp()">search</button>
           </li>
       </ul>
     </nav>
